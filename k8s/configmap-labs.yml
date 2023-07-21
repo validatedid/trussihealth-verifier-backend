@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: trussihealth-verifier-back-configmap
+data:
+  PORT: '3050'
+  BASE_PATH: /trussihealth-verifier
+  FRONTEND_BASE_URL: https://labs-verifier.vidchain.net
+  OPENID_URL: https://labs.vidchain.net
+  OPENID_CLIENT_ID: cemtro-trussihealth
+  VIDCHAIN_URL: https://labs.vidchain.net/api/v1
+  VIDCHAIN_ISS: TrussiHealth

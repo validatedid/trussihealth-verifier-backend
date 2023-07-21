@@ -1,0 +1,122 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: trussihealth-verifier-back-deployment
+  labels:
+    app: trussihealth-verifier-back
+spec:
+  replicas: 1
+  revisionHistoryLimit: 1
+  selector:
+    matchLabels:
+      app: trussihealth-verifier-back
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        app: trussihealth-verifier-back
+    spec:
+      containers:
+        - image: k8scrvidchainlabs.azurecr.io/trussihealth-verifier-back:latest
+          imagePullPolicy: 'Always'
+          name: trussihealth-verifier-back
+          ports:
+            - containerPort: 3050
+          env:
+            - name: PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: trussihealth-verifier-back-configmap
+                  key: PORT
+            - name: BASE_PATH
+              valueFrom:
+                configMapKeyRef:
+                  name: trussihealth-verifier-back-configmap
+                  key: BASE_PATH
+            - name: FRONTEND_BASE_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: trussihealth-verifier-back-configmap
+                  key: FRONTEND_BASE_URL
+            - name: OPENID_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: trussihealth-verifier-back-configmap
+                  key: OPENID_URL
+            - name: OPENID_CLIENT_ID
+              valueFrom:
+                configMapKeyRef:
+                  name: trussihealth-verifier-back-configmap
+                  key: OPENID_CLIENT_ID
+            - name: VIDCHAIN_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: trussihealth-verifier-back-configmap
+                  key: VIDCHAIN_URL
+            - name: VIDCHAIN_ISS
+              valueFrom:
+                configMapKeyRef:
+                  name: trussihealth-verifier-back-configmap
+                  key: VIDCHAIN_ISS
+            - name: OPENID_CLIENT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: trussihealth-verifier-secret
+                  key: openid-client-secret
+            - name: VIDCHAIN_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: trussihealth-verifier-secret
+                  key: vidchain-api-key
+            - name: OPENID_BASIC_AUTH
+              valueFrom:
+                secretKeyRef:
+                  name: trussihealth-verifier-secret
+                  key: basic-auth
+
+      restartPolicy: Always
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: trussihealth-verifier-back-service
+  labels:
+    app: trussihealth-verifier-back
+spec:
+  type: ClusterIP
+  ports:
+    - name: '3050'
+      port: 3050
+  selector:
+    app: trussihealth-verifier-back
+
+---
+
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: trussihealth-verifier-back-ingress
+  annotations:
+    kubernetes.io/ingress.class: nginx
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    rewrite-target: /trussihealth-verifier
+spec:
+  tls:
+  - hosts:
+    - trussihealth-verifier.vidchain.net
+    secretName: wildcard-vidchain-net
+  rules:
+  - host: trussihealth-verifier.vidchain.net
+    http:
+      paths:
+      - path: /trussihealth-verifier
+        pathType: Prefix
+        backend:
+          service:
+            name: trussihealth-verifier-back-service
+            port:
+              number: 3050
